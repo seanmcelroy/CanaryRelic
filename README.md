@@ -12,7 +12,18 @@ application to dispatch to New Relic.  While New Relic can show this information
 on Dashboards in that product, it does not allow you to use custom metrics as
 the basis for alerts to PagerDuty.
 
+And, thanks to Toby at New Relic for pointing out that the metric you are alerting
+needn't be a custom metric, rather this will allow you to alert on any metric for
+any application, like throughput. To list all metrics for an application, just use
+the 'metrics.xml' call with no other parameters:
+
+curl -H “x-api-key:YOUR API KEY” ‘https://api.newrelic.com/api/v1/agents/:agent_id/metrics.xml'
+
+Where 'agent_id' can be any of your app ID #'s.
+
+
 (The name 'canary' harkens back to the days when canaries were taken into mines
  as a barometer of dangerous gas build-up that could kill miners. :) )
  
+
 Released into the public domain by Sean McElroy ( me @ seanmcelroy [dot) .com )
