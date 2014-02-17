@@ -39,6 +39,24 @@ namespace CanaryRelic
                         var startDate = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
                         var endDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
 
+                        // Get all available metrics
+                        //{
+                        //    var urlAvailableMetrics = string.Format(
+                        //       @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/metrics.xml",
+                        //       alertingMetric.AccountID,
+                        //       alertingMetric.ApplicationID);
+
+                        //    string dataAvailableMetrics;
+                        //    using (var request = new WebClient())
+                        //    {
+                        //        request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+                        //        dataAvailableMetrics = request.DownloadString(urlAvailableMetrics);
+                        //    }
+
+                        //    Console.WriteLine(dataAvailableMetrics);
+                        //}
+
+
                         var url = string.Format(
                             @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
                             alertingMetric.AccountID,
@@ -48,30 +66,65 @@ namespace CanaryRelic
                             startDate,
                             endDate);
 
-                        var request = new WebClient();
-                        request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
-                        var data = request.DownloadString(url);
+                        string data;
+                        using (var request = new WebClient())
+                        {
+                            request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+                            data = request.DownloadString(url);
+                        }
+
+                        var urlCount = string.Format(
+                            @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
+                            alertingMetric.AccountID,
+                            alertingMetric.ApplicationID,
+                            alertingMetric.MetricName,
+                            "call_count",
+                            startDate,
+                            endDate);
+
+                        string dataCount;
+                        using (var requestCount = new WebClient())
+                        {
+                            requestCount.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+                            dataCount = requestCount.DownloadString(urlCount);
+                        }
 
                         var xml = new XmlDocument();
                         xml.LoadXml(data);
                         var nodes = xml.SelectNodes("metrics/metric/field");
-                        if (nodes != null)
+
+                        var xmlCount = new XmlDocument();
+                        xmlCount.LoadXml(dataCount);
+                        var nodesCount = xmlCount.SelectNodes("metrics/metric/field");
+
+                        if (nodes != null && nodesCount != null && nodes.Count == nodesCount.Count)
                         {
-                            var sum = 0F;
-                            var count = 0F;
-                            foreach (XmlNode node in nodes)
+                            var sumMetric = 0F;
+                            var countMetric = 0F;
+
+                            for (var i = 0; i < nodes.Count; i++)
                             {
-                                sum += float.Parse(node.InnerText);
-                                count++;
+                                var node = nodes[i];
+                                var nodeCount = nodesCount[i];
+
+                                if (float.Parse(nodeCount.InnerText) > 1)
+                                {
+                                    sumMetric += float.Parse(node.InnerText);
+                                    countMetric++;
+                                }
                             }
-                            var avg = sum / count;
 
-                            Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avg, count);
+                            if (countMetric < 3)
+                                continue;
 
-                            if (avg > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
+                            var avgMetric = sumMetric / countMetric;
+
+                            Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
+
+                            if (avgMetric > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
                             {
                                 Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.PagerDutyMessage);
-                                PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avg);
+                                PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avgMetric);
                                 alertingMetric.LastPagerDutyAlert = DateTime.Now;
                             }
                         }
