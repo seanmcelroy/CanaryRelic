@@ -56,7 +56,6 @@ namespace CanaryRelic
                         //    Console.WriteLine(dataAvailableMetrics);
                         //}
 
-
                         var url = string.Format(
                             @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
                             alertingMetric.AccountID,
@@ -107,7 +106,7 @@ namespace CanaryRelic
                                 var node = nodes[i];
                                 var nodeCount = nodesCount[i];
 
-                                if (float.Parse(nodeCount.InnerText) > 1)
+                                if (float.Parse(nodeCount.InnerText) > 1 || alertingMetric.FieldName == "average_value")
                                 {
                                     sumMetric += float.Parse(node.InnerText);
                                     countMetric++;
@@ -118,6 +117,8 @@ namespace CanaryRelic
                                 continue;
 
                             var avgMetric = sumMetric / countMetric;
+                            if (float.IsNaN(avgMetric))
+                                avgMetric = 0;
 
                             Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
 
