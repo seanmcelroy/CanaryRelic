@@ -11,7 +11,7 @@
     <AssemblyName>CanaryRelic</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -33,14 +33,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="HipChat.Net">
+      <HintPath>packages\HipChat.Net.1.2\lib\HipChat.Net.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="PagerDuty.Net">
-      <HintPath>..\packages\PagerDutyNet.1.0.1\lib\net40\PagerDuty.Net.dll</HintPath>
-    </Reference>
-    <Reference Include="RestSharp">
-      <HintPath>..\packages\RestSharp.104.1\lib\net4\RestSharp.dll</HintPath>
+      <HintPath>packages\Newtonsoft.Json.6.0.5\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
@@ -56,6 +53,7 @@
     <Compile Include="CanaryConfigurationSection.cs" />
     <Compile Include="AlertCriteriaConfigurationElement.cs" />
     <Compile Include="AlertCriteriaConfigurationElementCollection.cs" />
+    <Compile Include="HipChatConfigurationElement.cs" />
     <Compile Include="PagerDutyConfigurationElement.cs" />
     <Compile Include="NewRelicConfigurationElement.cs" />
     <Compile Include="Program.cs" />

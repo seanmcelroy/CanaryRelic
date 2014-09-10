@@ -6,180 +6,188 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Xml;
+using HipChat;
 
 namespace CanaryRelic
 {
-    public class Program
-    {
-        public static void Main()
-        {
-            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            var canaryRelicConfigurationSection = (CanaryConfigurationSection)config.GetSection("canaryRelic");
+	public class Program
+	{
+		public static void Main()
+		{
+			var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+			var canaryRelicConfigurationSection = (CanaryConfigurationSection)config.GetSection("canaryRelic");
 
-            var alertingMetrics = canaryRelicConfigurationSection.Alerts.Select(x => new AlertingMetric
-            {
-                AccountID = x.NewRelic.NewRelicAccountId,
-                ApplicationID = x.NewRelic.NewRelicApplicationId,
-                FieldName = x.NewRelic.NewRelicMetricFieldName,
-                LastPagerDutyAlert = null,
-                MaxAverage = x.MaximumMetricAverage,
-                MetricName = x.NewRelic.NewRelicMetricName,
-                NewRelicAPIKey = x.NewRelic.NewRelicApiKey,
-                PagerDutyServiceAPIKey = x.PagerDuty.GenericServiceApiKey,
-                PagerDutyMessage = x.PagerDuty.MessageOnAlert
-            })
-            .ToList();
+			var alertingMetrics = canaryRelicConfigurationSection.Alerts.Select(x => new AlertingMetric
+			{
+				AccountID = x.NewRelic.NewRelicAccountId,
+				ApplicationID = x.NewRelic.NewRelicApplicationId,
+				FieldName = x.NewRelic.NewRelicMetricFieldName,
+				HipChatApiKey = x.HipChat.HipChatApiKey,
+				HipChatRoomName = x.HipChat.HipChatRoomName,
+				LastPagerDutyAlert = null,
+				MaxAverage = x.MaximumMetricAverage,
+				MetricName = x.NewRelic.NewRelicMetricName,
+				NewRelicAPIKey = x.NewRelic.NewRelicApiKey,
+				PagerDutyServiceAPIKey = x.PagerDuty.GenericServiceApiKey,
+				PagerDutyMessage = x.PagerDuty.MessageOnAlert
+			})
+			.ToList();
 
-            while (true)
-            {
-                try
-                {
-                    foreach (var alertingMetric in alertingMetrics)
-                    {
-                        var startDate = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
-                        var endDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
+			foreach (var hipChatSink in alertingMetrics.Select(x => new { x.HipChatApiKey, x.HipChatRoomName }).Distinct())
+				HipChatClient.SendMessage(hipChatSink.HipChatApiKey, hipChatSink.HipChatRoomName, "CanaryBot", "CanaryBot has started", true, HipChatClient.BackgroundColor.purple);
 
-                        // Get all available metrics
-                        //{
-                        //    var urlAvailableMetrics = string.Format(
-                        //       @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/metrics.xml",
-                        //       alertingMetric.AccountID,
-                        //       alertingMetric.ApplicationID);
+			while (true)
+			{
+				try
+				{
+					foreach (var alertingMetric in alertingMetrics)
+					{
+						var startDate = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
+						var endDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
 
-                        //    string dataAvailableMetrics;
-                        //    using (var request = new WebClient())
-                        //    {
-                        //        request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
-                        //        dataAvailableMetrics = request.DownloadString(urlAvailableMetrics);
-                        //    }
+						// Get all available metrics
+						//{
+						//    var urlAvailableMetrics = string.Format(
+						//       @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/metrics.xml",
+						//       alertingMetric.AccountID,
+						//       alertingMetric.ApplicationID);
 
-                        //    Console.WriteLine(dataAvailableMetrics);
-                        //}
+						//    string dataAvailableMetrics;
+						//    using (var request = new WebClient())
+						//    {
+						//        request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+						//        dataAvailableMetrics = request.DownloadString(urlAvailableMetrics);
+						//    }
 
-                        var url = string.Format(
-                            @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
-                            alertingMetric.AccountID,
-                            alertingMetric.ApplicationID,
-                            alertingMetric.MetricName,
-                            alertingMetric.FieldName,
-                            startDate,
-                            endDate);
+						//    Console.WriteLine(dataAvailableMetrics);
+						//}
 
-                        string data;
-                        using (var request = new WebClient())
-                        {
-                            request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
-                            data = request.DownloadString(url);
-                        }
+						var url = string.Format(
+							@"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
+							alertingMetric.AccountID,
+							alertingMetric.ApplicationID,
+							alertingMetric.MetricName,
+							alertingMetric.FieldName,
+							startDate,
+							endDate);
 
-                        var urlCount = string.Format(
-                            @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
-                            alertingMetric.AccountID,
-                            alertingMetric.ApplicationID,
-                            alertingMetric.MetricName,
-                            "call_count",
-                            startDate,
-                            endDate);
+						string data;
+						using (var request = new WebClient())
+						{
+							request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+							data = request.DownloadString(url);
+						}
 
-                        string dataCount;
-                        using (var requestCount = new WebClient())
-                        {
-                            requestCount.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
-                            dataCount = requestCount.DownloadString(urlCount);
-                        }
+						var urlCount = string.Format(
+							@"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
+							alertingMetric.AccountID,
+							alertingMetric.ApplicationID,
+							alertingMetric.MetricName,
+							"call_count",
+							startDate,
+							endDate);
 
-                        var xml = new XmlDocument();
-                        xml.LoadXml(data);
-                        var nodes = xml.SelectNodes("metrics/metric/field");
+						string dataCount;
+						using (var requestCount = new WebClient())
+						{
+							requestCount.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
+							dataCount = requestCount.DownloadString(urlCount);
+						}
 
-                        var xmlCount = new XmlDocument();
-                        xmlCount.LoadXml(dataCount);
-                        var nodesCount = xmlCount.SelectNodes("metrics/metric/field");
+						var xml = new XmlDocument();
+						xml.LoadXml(data);
+						var nodes = xml.SelectNodes("metrics/metric/field");
 
-                        if (nodes != null && nodesCount != null && nodes.Count == nodesCount.Count)
-                        {
-                            var sumMetric = 0F;
-                            var countMetric = 0F;
+						var xmlCount = new XmlDocument();
+						xmlCount.LoadXml(dataCount);
+						var nodesCount = xmlCount.SelectNodes("metrics/metric/field");
 
-                            for (var i = 0; i < nodes.Count; i++)
-                            {
-                                var node = nodes[i];
-                                var nodeCount = nodesCount[i];
+						if (nodes != null && nodesCount != null && nodes.Count == nodesCount.Count)
+						{
+							var sumMetric = 0F;
+							var countMetric = 0F;
 
-                                if (float.Parse(nodeCount.InnerText) > 1 || alertingMetric.FieldName == "average_value")
-                                {
-                                    sumMetric += float.Parse(node.InnerText);
-                                    countMetric++;
-                                }
-                            }
+							for (var i = 0; i < nodes.Count; i++)
+							{
+								var node = nodes[i];
+								var nodeCount = nodesCount[i];
 
-                            if (countMetric < 3)
-                                continue;
+								if ((float.Parse(nodeCount.InnerText) > 1 && alertingMetric.FieldName == "average_value") ||
+									alertingMetric.FieldName != "average_value")
+								{
+									sumMetric += float.Parse(node.InnerText);
+									countMetric++;
+								}
+							}
 
-                            var avgMetric = sumMetric / countMetric;
-                            if (float.IsNaN(avgMetric))
-                                avgMetric = 0;
+							//if (countMetric < 3)
+							//	continue;
 
-                            Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
+							var avgMetric = sumMetric / countMetric;
+							if (float.IsNaN(avgMetric))
+								avgMetric = 0;
 
-                            if (avgMetric > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
-                            {
-                                Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.PagerDutyMessage);
-                                PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avgMetric);
-                                alertingMetric.LastPagerDutyAlert = DateTime.Now;
-                            }
-                        }
-                    }
-                    System.Threading.Thread.Sleep(29000);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
-            }            
-        }
+							Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
 
-        private static void PostPagerDutyAlert(string pagerDutyServiceKey, string description, float cur)
-        {
-            Console.WriteLine("[{0} {1}] Posting alert to PagerDuty for {2}", DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(), description);
+							if (avgMetric > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
+							{
+								Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.PagerDutyMessage);
+								HipChatClient.SendMessage(alertingMetric.HipChatApiKey, alertingMetric.HipChatRoomName, "CanaryBot", alertingMetric.PagerDutyMessage, true, HipChatClient.BackgroundColor.red);
+								PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avgMetric);
+								alertingMetric.LastPagerDutyAlert = DateTime.Now;
+							}
+						}
+					}
+					System.Threading.Thread.Sleep(29000);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.ToString());
+				}
+			}
+		}
 
-            var json = new
-            {
-                service_key = pagerDutyServiceKey,
-                event_type = "trigger",
-                description,
-                details = new
-                {
-                    current_average = cur
-                }
-            };
+		private static void PostPagerDutyAlert(string pagerDutyServiceKey, string description, float cur)
+		{
+			Console.WriteLine("[{0} {1}] Posting alert to PagerDuty for {2}", DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(), description);
 
-            var http = (HttpWebRequest)WebRequest.Create(new Uri("https://events.pagerduty.com/generic/2010-04-15/create_event.json"));
-            http.Accept = "application/json";
-            http.ContentType = "application/json";
-            http.Method = "POST";
+			var json = new
+			{
+				service_key = pagerDutyServiceKey,
+				event_type = "trigger",
+				description,
+				details = new
+				{
+					current_average = cur
+				}
+			};
 
-            var parsedContent = JsonConvert.SerializeObject(json);
-            var encoding = new ASCIIEncoding();
-            var bytes = encoding.GetBytes(parsedContent);
+			var http = (HttpWebRequest)WebRequest.Create(new Uri("https://events.pagerduty.com/generic/2010-04-15/create_event.json"));
+			http.Accept = "application/json";
+			http.ContentType = "application/json";
+			http.Method = "POST";
 
-            var newStream = http.GetRequestStream();
-            newStream.Write(bytes, 0, bytes.Length);
-            newStream.Close();
+			var parsedContent = JsonConvert.SerializeObject(json);
+			var encoding = new ASCIIEncoding();
+			var bytes = encoding.GetBytes(parsedContent);
 
-            var response = http.GetResponse();
-            using (var stream = response.GetResponseStream())
-            {
-                if (stream != null)
-                {
-                    using (var sr = new StreamReader(stream))
-                    {
-                        var content = sr.ReadToEnd();
-                        Console.WriteLine("Response from PagerDuty: {0}", content);
-                    }
-                }
-            }
-        }
+			var newStream = http.GetRequestStream();
+			newStream.Write(bytes, 0, bytes.Length);
+			newStream.Close();
 
-    }
+			var response = http.GetResponse();
+			using (var stream = response.GetResponseStream())
+			{
+				if (stream != null)
+				{
+					using (var sr = new StreamReader(stream))
+					{
+						var content = sr.ReadToEnd();
+						Console.WriteLine("Response from PagerDuty: {0}", content);
+					}
+				}
+			}
+		}
+
+	}
 }

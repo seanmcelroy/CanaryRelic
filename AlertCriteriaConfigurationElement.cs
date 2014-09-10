@@ -10,19 +10,29 @@ namespace CanaryRelic
         [ConfigurationProperty("name", IsRequired = true)]
         public string Name
         {
-            get { return (string) this["name"]; }
+            get { return (string)this["name"]; }
             set { this["name"] = value; }
         }
 
-        /// <summary>
-        /// Configuration information about NewRelic
-        /// </summary>
-        [ConfigurationProperty("newRelic", IsRequired = true)]
-        public NewRelicConfigurationElement NewRelic
-        {
-            get { return (NewRelicConfigurationElement)this["newRelic"]; }
-            set { this["newRelic"] = value; }
-        }
+		/// <summary>
+		/// Configuration information about NewRelic
+		/// </summary>
+		[ConfigurationProperty("newRelic", IsRequired = true)]
+		public NewRelicConfigurationElement NewRelic
+		{
+			get { return (NewRelicConfigurationElement)this["newRelic"]; }
+			set { this["newRelic"] = value; }
+		}
+
+		/// <summary>
+		/// Gets or sets the configuration information for HipChat
+		/// </summary>
+		[ConfigurationProperty("hipChat", IsRequired = false)]
+		public HipChatConfigurationElement HipChat
+		{
+			get { return (HipChatConfigurationElement)this["hipChat"]; }
+			set { this["hipChat"] = value; }
+		}
 
         /// <summary>
         /// Configuration information for PagerDuty

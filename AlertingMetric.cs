@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace CanaryRelic
+﻿namespace CanaryRelic
 {
-    public class AlertingMetric
+	using System;
+	
+	public class AlertingMetric
     {
         public string NewRelicAPIKey { get; set; }
         public int AccountID { get; set; }
@@ -16,5 +13,7 @@ namespace CanaryRelic
         public string PagerDutyServiceAPIKey { get; set; }
         public string PagerDutyMessage { get; set; }
         public DateTime? LastPagerDutyAlert { get; set; }
+	    public string HipChatApiKey { get; set; }
+	    public string HipChatRoomName { get; set; }
     }
 }
