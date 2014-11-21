@@ -1,15 +1,15 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Configuration;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Xml;
-using HipChat;
-
-namespace CanaryRelic
+﻿namespace CanaryRelic
 {
+	using System;
+	using System.Configuration;
+	using System.IO;
+	using System.Linq;
+	using System.Net;
+	using System.Text;
+	using System.Xml;
+	using HipChat;
+	using Newtonsoft.Json;
+
 	public class Program
 	{
 		public static void Main()
@@ -129,10 +129,15 @@ namespace CanaryRelic
 
 							Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
 
+							if (avgMetric > alertingMetric.MaxAverage)
+							{
+								Console.WriteLine("Alerting HipChat for {0}!", alertingMetric.PagerDutyMessage);
+								HipChatClient.SendMessage(alertingMetric.HipChatApiKey, alertingMetric.HipChatRoomName, "CanaryBot", alertingMetric.PagerDutyMessage, true, HipChatClient.BackgroundColor.red);
+							}
+
 							if (avgMetric > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
 							{
 								Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.PagerDutyMessage);
-								HipChatClient.SendMessage(alertingMetric.HipChatApiKey, alertingMetric.HipChatRoomName, "CanaryBot", alertingMetric.PagerDutyMessage, true, HipChatClient.BackgroundColor.red);
 								PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avgMetric);
 								alertingMetric.LastPagerDutyAlert = DateTime.Now;
 							}

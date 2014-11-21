@@ -10,10 +10,11 @@
         public string MetricName { get; set; }
         public string FieldName { get; set; }
         public float MaxAverage { get; set; }
-        public string PagerDutyServiceAPIKey { get; set; }
-        public string PagerDutyMessage { get; set; }
-        public DateTime? LastPagerDutyAlert { get; set; }
-	    public string HipChatApiKey { get; set; }
+		public string PagerDutyServiceAPIKey { get; set; }
+		public string PagerDutyMessage { get; set; }
+		public DateTime? LastPagerDutyAlert { get; set; }
+
+		public string HipChatApiKey { get; set; }
 	    public string HipChatRoomName { get; set; }
-    }
+	}
 }
