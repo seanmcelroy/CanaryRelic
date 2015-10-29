@@ -16,6 +16,7 @@ namespace CanaryRelic
             get { return (string)this["genericServiceAPIKey"]; }
             set { this["genericServiceAPIKey"] = value; }
         }
+
         /// <summary>
         /// The message to send to PagerDuty on alert
         /// </summary>

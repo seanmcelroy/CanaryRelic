@@ -19,22 +19,24 @@
 
 			var alertingMetrics = canaryRelicConfigurationSection.Alerts.Select(x => new AlertingMetric
 			{
+				Name = x.Name,
 				AccountID = x.NewRelic.NewRelicAccountId,
 				ApplicationID = x.NewRelic.NewRelicApplicationId,
 				FieldName = x.NewRelic.NewRelicMetricFieldName,
 				HipChatApiKey = x.HipChat.HipChatApiKey,
 				HipChatRoomName = x.HipChat.HipChatRoomName,
 				LastPagerDutyAlert = null,
+				MinAverage = x.MinimumMetricAverage,
 				MaxAverage = x.MaximumMetricAverage,
 				MetricName = x.NewRelic.NewRelicMetricName,
 				NewRelicAPIKey = x.NewRelic.NewRelicApiKey,
-				PagerDutyServiceAPIKey = x.PagerDuty.GenericServiceApiKey,
-				PagerDutyMessage = x.PagerDuty.MessageOnAlert
+				PagerDutyServiceAPIKey = x.PagerDuty == null ? null : x.PagerDuty.GenericServiceApiKey,
+				PagerDutyMessage = x.PagerDuty == null ? null : x.PagerDuty.MessageOnAlert
 			})
 			.ToList();
 
-			foreach (var hipChatSink in alertingMetrics.Select(x => new { x.HipChatApiKey, x.HipChatRoomName }).Distinct())
-				HipChatClient.SendMessage(hipChatSink.HipChatApiKey, hipChatSink.HipChatRoomName, "CanaryBot", "CanaryBot has started", true, HipChatClient.BackgroundColor.purple);
+//			foreach (var hipChatSink in alertingMetrics.Select(x => new { x.HipChatApiKey, x.HipChatRoomName }).Distinct())
+//				HipChatClient.SendMessage(hipChatSink.HipChatApiKey, hipChatSink.HipChatRoomName, "CanaryBot", "CanaryBot has started", true, HipChatClient.BackgroundColor.purple);
 
 			while (true)
 			{
@@ -44,24 +46,7 @@
 					{
 						var startDate = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
 						var endDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss") + "Z";
-
-						// Get all available metrics
-						//{
-						//    var urlAvailableMetrics = string.Format(
-						//       @"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/metrics.xml",
-						//       alertingMetric.AccountID,
-						//       alertingMetric.ApplicationID);
-
-						//    string dataAvailableMetrics;
-						//    using (var request = new WebClient())
-						//    {
-						//        request.Headers.Add("x-api-key", alertingMetric.NewRelicAPIKey);
-						//        dataAvailableMetrics = request.DownloadString(urlAvailableMetrics);
-						//    }
-
-						//    Console.WriteLine(dataAvailableMetrics);
-						//}
-
+						
 						var url = string.Format(
 							@"https://api.newrelic.com/api/v1/accounts/{0}/applications/{1}/data.xml?metrics[]={2}&field={3}&begin={4}&end={5}",
 							alertingMetric.AccountID,
@@ -127,17 +112,19 @@
 							if (float.IsNaN(avgMetric))
 								avgMetric = 0;
 
-							Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.PagerDutyMessage, avgMetric, countMetric);
+							Console.WriteLine("{0:yyyy-MM-dd-HH:mm:ss} - {1}: {2:N3} average over {3} minutes", DateTime.Now, alertingMetric.Name, avgMetric, countMetric);
 
-							if (avgMetric > alertingMetric.MaxAverage)
+							if (avgMetric > alertingMetric.MaxAverage || avgMetric < alertingMetric.MinAverage)
 							{
-								Console.WriteLine("Alerting HipChat for {0}!", alertingMetric.PagerDutyMessage);
-								HipChatClient.SendMessage(alertingMetric.HipChatApiKey, alertingMetric.HipChatRoomName, "CanaryBot", alertingMetric.PagerDutyMessage, true, HipChatClient.BackgroundColor.red);
+								Console.WriteLine("Alerting HipChat for {0}!", alertingMetric.Name);
+								HipChatClient.SendMessage(alertingMetric.HipChatApiKey, alertingMetric.HipChatRoomName, "CanaryBot", alertingMetric.Name, true, HipChatClient.BackgroundColor.red);
 							}
 
-							if (avgMetric > alertingMetric.MaxAverage && (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60))
+							if ((avgMetric > alertingMetric.MaxAverage || avgMetric < alertingMetric.MinAverage)
+								&& (alertingMetric.LastPagerDutyAlert == null || (DateTime.Now - alertingMetric.LastPagerDutyAlert.Value).TotalMinutes > 60)
+								&& !string.IsNullOrWhiteSpace(alertingMetric.PagerDutyServiceAPIKey))
 							{
-								Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.PagerDutyMessage);
+								Console.WriteLine("Alerting PagerDuty for {0}!", alertingMetric.Name);
 								PostPagerDutyAlert(alertingMetric.PagerDutyServiceAPIKey, alertingMetric.PagerDutyMessage, avgMetric);
 								alertingMetric.LastPagerDutyAlert = DateTime.Now;
 							}
@@ -148,6 +135,7 @@
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.ToString());
+					System.Threading.Thread.Sleep(15000);
 				}
 			}
 		}
@@ -193,6 +181,5 @@
 				}
 			}
 		}
-
 	}
 }

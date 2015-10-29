@@ -37,20 +37,30 @@ namespace CanaryRelic
         /// <summary>
         /// Configuration information for PagerDuty
         /// </summary>
-        [ConfigurationProperty("pagerDuty", IsRequired = true)]
+        [ConfigurationProperty("pagerDuty", IsRequired = false)]
         public PagerDutyConfigurationElement PagerDuty
         {
             get { return (PagerDutyConfigurationElement)this["pagerDuty"]; }
             set { this["pagerDuty"] = value; }
         }
-        
+
+		/// <summary>
+		/// Configuration for the minimum alerting threshold
+		/// </summary>
+		[ConfigurationProperty("minimumMetricAverage", IsRequired = false)]
+		public float? MinimumMetricAverage
+		{
+			get { return this["minimumMetricAverage"] == null ? default(float?) : (float)this["minimumMetricAverage"]; }
+			set { this["minimumMetricAverage"] = value; }
+		}
+
         /// <summary>
         /// Configuration for the alerting threshold
         /// </summary>
-        [ConfigurationProperty("maximumMetricAverage", IsRequired = true)]
-        public float MaximumMetricAverage
+		[ConfigurationProperty("maximumMetricAverage", IsRequired = false)]
+        public float? MaximumMetricAverage
         {
-            get { return (float)this["maximumMetricAverage"]; }
+            get { return this["maximumMetricAverage"] == null ? default(float?) : (float)this["maximumMetricAverage"]; }
             set { this["maximumMetricAverage"] = value; }
         }
         
