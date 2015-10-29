@@ -35,8 +35,8 @@
 			})
 			.ToList();
 
-//			foreach (var hipChatSink in alertingMetrics.Select(x => new { x.HipChatApiKey, x.HipChatRoomName }).Distinct())
-//				HipChatClient.SendMessage(hipChatSink.HipChatApiKey, hipChatSink.HipChatRoomName, "CanaryBot", "CanaryBot has started", true, HipChatClient.BackgroundColor.purple);
+			foreach (var hipChatSink in alertingMetrics.Select(x => new { x.HipChatApiKey, x.HipChatRoomName }).Distinct())
+				HipChatClient.SendMessage(hipChatSink.HipChatApiKey, hipChatSink.HipChatRoomName, "CanaryBot", "CanaryBot has started", true, HipChatClient.BackgroundColor.purple);
 
 			while (true)
 			{
