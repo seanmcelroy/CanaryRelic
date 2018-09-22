@@ -24,6 +24,3 @@ Where 'agent_id' can be any of your app ID #'s.
 
 (The name 'canary' harkens back to the days when canaries were taken into mines
  as a barometer of dangerous gas build-up that could kill miners. :) )
- 
-
-Released into the public domain by Sean McElroy ( me @ seanmcelroy [dot) .com )
