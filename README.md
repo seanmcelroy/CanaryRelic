@@ -1,4 +1,4 @@
-CanaryRelic [![Build Status](https://travis-ci.org/seanmcelroy/CanaryRelic.svg?branch=master)](https://travis-ci.org/seanmcelroy/CanaryRelic)
+CanaryRelic
 ===========
 
 CanaryRelic is a Microsoft .NET Console Application that polls the New Relic API
